@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng hình thành phân tử H2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .electron {
+            filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.9));
+        }
+        .shell {
+            fill: rgba(226, 232, 240, 0.3);
+            stroke: #94a3b8;
+            stroke-width: 1.5;
+            stroke-dasharray: 4;
+            transition: all 0.5s ease;
+        }
+        .nucleus-label {
+            font-weight: bold;
+            font-size: 14px;
+            fill: #92400e;
+        }
+        #main-svg {
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.05));
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white rounded-3xl shadow-2xl p-6 md:p-10 max-w-5xl w-full border border-slate-200">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-slate-800 mb-2">Mô phỏng góp chung electron tạo thành H<sub>2</sub></h1>
+            <p class="text-slate-500 italic">Thiết kế: Nguyễn Mạnh Hưng</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            
+            <!-- Simulation Viewport -->
+            <div class="relative flex flex-col items-center justify-center bg-slate-50 rounded-2xl p-4 border border-slate-100 min-h-[400px] overflow-hidden">
+                <svg id="main-svg" viewBox="0 0 600 300" class="w-full h-full">
+                    <!-- Atom 1 Group (Moves +70 horizontally) -->
+                    <g id="atom-1">
+                        <circle class="shell" cx="180" cy="150" r="75" />
+                        <circle cx="180" cy="150" r="25" fill="#fbbf24" />
+                        <text x="180" y="155" text-anchor="middle" class="nucleus-label">+1</text>
+                        <circle id="e1" class="electron" cx="255" cy="150" r="8" fill="#3b82f6" />
+                        <text id="label-h1" x="180" y="255" text-anchor="middle" class="text-xl font-bold fill-slate-600">H</text>
+                    </g>
+
+                    <!-- Atom 2 Group (Moves -70 horizontally) -->
+                    <g id="atom-2">
+                        <circle class="shell" cx="420" cy="150" r="75" />
+                        <circle cx="420" cy="150" r="25" fill="#fbbf24" />
+                        <text x="420" y="155" text-anchor="middle" class="nucleus-label">+1</text>
+                        <circle id="e2" class="electron" cx="345" cy="150" r="8" fill="#3b82f6" />
+                        <text id="label-h2" x="420" y="255" text-anchor="middle" class="text-xl font-bold fill-slate-600">H</text>
+                    </g>
+
+                    <!-- Molecule Label (Hidden initially) -->
+                    <!-- Sửa lỗi: Sử dụng tspan cho chỉ số dưới trong SVG -->
+                    <text id="label-h2-molecule" x="300" y="280" text-anchor="middle" class="text-3xl font-black fill-blue-600 opacity-0">
+                        H<tspan baseline-shift="sub" font-size="0.6em">2</tspan>
+                    </text>
+                </svg>
+            </div>
+
+            <!-- Content Panel -->
+            <div class="space-y-6">
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-5 rounded-r-xl">
+                    <h2 class="font-bold text-blue-900 text-lg mb-2">Cơ chế hình thành:</h2>
+                    <p class="text-slate-700 text-sm leading-relaxed">
+                        Mỗi nguyên tử Hydrogen (H) có 1 electron. Để đạt cấu hình bền vững của khí hiếm Helium (2e), hai nguyên tử H đã <strong>góp chung</strong> electron để tạo thành một <strong>đôi electron dùng chung</strong>.
+                    </p>
+                </div>
+
+                <div id="status-card" class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm transition-all duration-500">
+                    <h3 class="font-bold text-slate-800 mb-2">Trạng thái: <span id="status-text" class="text-slate-500 font-medium">Hai nguyên tử riêng biệt</span></h3>
+                    <p id="description" class="text-slate-600 text-sm">
+                        Nhấn nút bên dưới để quan sát quá trình tiến lại gần và góp chung electron.
+                    </p>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <button id="btn-share" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-lg transform active:scale-95 flex items-center justify-center gap-2">
+                        <span>Góp chung Electron</span>
+                    </button>
+                    <button id="btn-reset" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-3 px-6 rounded-xl transition-colors">
+                        Đặt lại (Reset)
+                    </button>
+                </div>
+
+                <div class="text-[11px] text-slate-400 text-center italic border-t pt-4">
+                    "Sau khi liên kết, mỗi nguyên tử H đều có 2 electron xung quanh, giống lớp vỏ bền vững của He."
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const btnShare = document.getElementById('btn-share');
+        const btnReset = document.getElementById('btn-reset');
+        const atom1 = document.getElementById('atom-1');
+        const atom2 = document.getElementById('atom-2');
+        const e1 = document.getElementById('e1');
+        const e2 = document.getElementById('e2');
+        const statusText = document.getElementById('status-text');
+        const description = document.getElementById('description');
+        const labelH1 = document.getElementById('label-h1');
+        const labelH2 = document.getElementById('label-h2');
+        const labelMolecule = document.getElementById('label-h2-molecule');
+        const statusCard = document.getElementById('status-card');
+
+        let isLinked = false;
+
+        function startSharing() {
+            if (isLinked) return;
+            isLinked = true;
+            btnShare.disabled = true;
+            btnShare.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const tl = gsap.timeline();
+
+            // 1. Hai nguyên tử tiến lại gần nhau
+            tl.to(atom1, { x: 70, duration: 1.5, ease: "power2.inOut" }, 0);
+            tl.to(atom2, { x: -70, duration: 1.5, ease: "power2.inOut" }, 0);
+
+            // 2. Electron di chuyển vào vùng chung nằm giữa
+            tl.to(e1, { 
+                cx: 230, 
+                cy: 142, 
+                duration: 1.2, 
+                ease: "power2.out" 
+            }, 0.5);
+            
+            tl.to(e2, { 
+                cx: 370, 
+                cy: 158, 
+                duration: 1.2, 
+                ease: "power2.out" 
+            }, 0.5);
+
+            // 3. Thay đổi giao diện
+            tl.to([labelH1, labelH2], { opacity: 0, duration: 0.3 }, 1);
+            tl.to(labelMolecule, { opacity: 1, y: -10, duration: 0.5 }, 1.2);
+            tl.to(".shell", { fill: "rgba(59, 130, 246, 0.1)", stroke: "#3b82f6", duration: 1 }, 1);
+
+            tl.add(() => {
+                statusText.innerText = "Liên kết cộng hóa trị H2";
+                statusText.classList.replace('text-slate-500', 'text-blue-600');
+                statusCard.classList.add('bg-blue-50', 'border-blue-200');
+                description.innerHTML = "<strong>Kết quả:</strong> Cặp electron dùng chung hiện nằm chính xác ở giữa hai hạt nhân. Đây là lực gắn kết tạo nên phân tử H<sub>2</sub>.";
+            });
+        }
+
+        function reset() {
+            isLinked = false;
+            btnShare.disabled = false;
+            btnShare.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            gsap.killTweensOf("*");
+
+            gsap.set(atom1, { x: 0 });
+            gsap.set(atom2, { x: 0 });
+            gsap.set(e1, { cx: 255, cy: 150 });
+            gsap.set(e2, { cx: 345, cy: 150 });
+            gsap.set([labelH1, labelH2], { opacity: 1 });
+            gsap.set(labelMolecule, { opacity: 0, y: 0 });
+            gsap.set(".shell", { fill: "rgba(226, 232, 240, 0.3)", stroke: "#94a3b8" });
+
+            statusText.innerText = "Hai nguyên tử riêng biệt";
+            statusText.className = "text-slate-500 font-medium";
+            statusCard.classList.remove('bg-blue-50', 'border-blue-200');
+            description.innerText = "Nhấn nút bên dưới để quan sát quá trình tiến lại gần và góp chung electron.";
+        }
+
+        btnShare.addEventListener('click', startSharing);
+        btnReset.addEventListener('click', resetSimulation);
+    </script>
+</body>
+</html>
